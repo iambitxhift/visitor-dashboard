@@ -12,20 +12,49 @@ def inject_css(path="style.css"):
         st.markdown(Path(path).read_text(), unsafe_allow_html=True)
 inject_css()
 
+# @st.cache_data(show_spinner=True)
+# def load_data(path: str, version: str = "") -> pd.DataFrame:
+#     if path != "__parts__" and Path(path).exists():
+#         df = pd.read_csv(path, parse_dates=["event_time"])
+#     else:
+#         parts = sorted(Path("data/parts").glob("visitor_events_100k_part*.csv"))
+#         if not parts:
+#             st.stop()
+#         dfs = [pd.read_csv(p, parse_dates=["event_time"]) for p in parts]
+#         df = pd.concat(dfs, ignore_index=True)
+#     df["date"] = df["event_time"].dt.date
+#     df["hour"] = df["event_time"].dt.hour
+#     df["weekday"] = df["event_time"].dt.day_name()
+#     return df
+
+
 @st.cache_data(show_spinner=True)
 def load_data(path: str, version: str = "") -> pd.DataFrame:
+    import pandas as pd
+    from pathlib import Path
+
+    def _read(p):
+        # robust parse; if the column exists but isn't parsed, coerce it
+        df_ = pd.read_csv(p)
+        if "event_time" not in df_.columns:
+            raise ValueError("CSV must contain an 'event_time' column")
+        df_["event_time"] = pd.to_datetime(df_["event_time"], errors="coerce")
+        df_ = df_.dropna(subset=["event_time"])  # drop bad rows if any
+        # IMPORTANT: keep 'date' as datetime64[ns], not .dt.date
+        df_["date"] = df_["event_time"].dt.normalize()      # 00:00 of each day
+        df_["hour"] = df_["event_time"].dt.hour
+        df_["weekday"] = df_["event_time"].dt.day_name()
+        return df_
+
     if path != "__parts__" and Path(path).exists():
-        df = pd.read_csv(path, parse_dates=["event_time"])
+        df = _read(path)
     else:
         parts = sorted(Path("data/parts").glob("visitor_events_100k_part*.csv"))
         if not parts:
             st.stop()
-        dfs = [pd.read_csv(p, parse_dates=["event_time"]) for p in parts]
-        df = pd.concat(dfs, ignore_index=True)
-    df["date"] = df["event_time"].dt.date
-    df["hour"] = df["event_time"].dt.hour
-    df["weekday"] = df["event_time"].dt.day_name()
+        df = pd.concat([_read(p) for p in parts], ignore_index=True)
     return df
+
 
 DATA_PATH_DEFAULT = "data/visitor_events_100k.csv"
 
