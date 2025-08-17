@@ -1,0 +1,121 @@
+
+import os
+from pathlib import Path
+import pandas as pd
+import streamlit as st
+import altair as alt
+
+st.set_page_config(page_title="E-commerce Visitor Dashboard", page_icon="📊", layout="wide")
+
+def inject_css(path="style.css"):
+    if Path(path).exists():
+        st.markdown(Path(path).read_text(), unsafe_allow_html=True)
+inject_css()
+
+@st.cache_data(show_spinner=True)
+def load_data(path: str, version: str = "") -> pd.DataFrame:
+    if path != "__parts__" and Path(path).exists():
+        df = pd.read_csv(path, parse_dates=["event_time"])
+    else:
+        parts = sorted(Path("data/parts").glob("visitor_events_100k_part*.csv"))
+        if not parts:
+            st.stop()
+        dfs = [pd.read_csv(p, parse_dates=["event_time"]) for p in parts]
+        df = pd.concat(dfs, ignore_index=True)
+    df["date"] = df["event_time"].dt.date
+    df["hour"] = df["event_time"].dt.hour
+    df["weekday"] = df["event_time"].dt.day_name()
+    return df
+
+DATA_PATH_DEFAULT = "data/visitor_events_100k.csv"
+
+with st.sidebar:
+    st.header("Filters")
+    data_path = st.text_input("CSV path", DATA_PATH_DEFAULT)
+    if Path(data_path).exists():
+        version = str(Path(data_path).stat().st_mtime)
+        df = load_data(data_path, version)
+    else:
+        parts = sorted(Path("data/parts").glob("visitor_events_100k_part*.csv"))
+        version = "|".join(f"{p.name}:{p.stat().st_mtime}" for p in parts)
+        df = load_data("__parts__", version)
+
+    min_date, max_date = df["date"].min(), df["date"].max()
+    date_range = st.date_input("Date range", value=(min_date, max_date), min_value=min_date, max_value=max_date)
+    os_sel   = st.multiselect("Device OS", sorted(df["device_os"].unique().tolist()))
+    cat_sel  = st.multiselect("Category", sorted(df["category"].unique().tolist()))
+    evt_sel  = st.multiselect("Event type", sorted(df["event_type"].unique().tolist()))
+    country  = st.multiselect("Country", sorted(df["country"].unique().tolist()))
+    search_sku = st.text_input("SKU contains…", "")
+
+mask = (df["date"] >= pd.to_datetime(date_range[0])) & (df["date"] <= pd.to_datetime(date_range[1]))
+if os_sel:  mask &= df["device_os"].isin(os_sel)
+if cat_sel: mask &= df["category"].isin(cat_sel)
+if evt_sel: mask &= df["event_type"].isin(evt_sel)
+if country: mask &= df["country"].isin(country)
+if search_sku.strip():
+    mask &= df["sku"].str.contains(search_sku.strip(), case=False, na=False)
+fdf = df.loc[mask].copy()
+
+col1, col2, col3, col4 = st.columns(4)
+total_events = len(fdf)
+unique_users = fdf["user_id"].nunique()
+purchases    = (fdf["event_type"] == "purchase").sum()
+revenue      = float(fdf["revenue"].sum())
+views_clicks = (fdf["event_type"].isin(["view","click","add_to_cart"])).sum()
+conv_rate    = (purchases / views_clicks * 100) if views_clicks else 0.0
+col1.metric("Total events", f"{total_events:,}")
+col2.metric("Unique users", f"{unique_users:,}")
+col3.metric("Purchases", f"{purchases:,}")
+col4.metric("Revenue", f"₹{revenue:,.0f}")
+
+st.divider()
+
+left, right = st.columns([2, 1])
+with left:
+    ts = fdf.groupby("date")["event_type"].count().reset_index(name="events")
+    chart = alt.Chart(ts).mark_line(point=True).encode(
+        x=alt.X("date:T", title="Date"),
+        y=alt.Y("events:Q", title="Events"),
+        tooltip=["date:T", "events:Q"]
+    ).properties(height=280, title="Events per day")
+    st.altair_chart(chart, use_container_width=True)
+
+    heat = fdf.groupby(["weekday","hour"])["event_type"].count().reset_index(name="events")
+    weekday_order = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+    heat["weekday"] = pd.Categorical(heat["weekday"], categories=weekday_order, ordered=True)
+    heat_chart = alt.Chart(heat).mark_rect().encode(
+        x=alt.X("hour:O", title="Hour of day"),
+        y=alt.Y("weekday:O", title="Weekday"),
+        color=alt.Color("events:Q", title="Events"),
+        tooltip=["weekday","hour","events"]
+    ).properties(height=280, title="Traffic heatmap")
+    st.altair_chart(heat_chart, use_container_width=True)
+
+with right:
+    top_cat = fdf.groupby("category")["event_type"].count().reset_index(name="events").sort_values("events", ascending=False).head(10)
+    cat_bar = alt.Chart(top_cat).mark_bar().encode(
+        x=alt.X("events:Q", title="Events"),
+        y=alt.Y("category:N", sort="-x", title="Category"),
+        tooltip=["category","events"]
+    ).properties(height=280, title="Top categories (by events)")
+    st.altair_chart(cat_bar, use_container_width=True)
+
+    top_sku = fdf[fdf["event_type"] == "purchase"].groupby("sku")["qty"].sum().reset_index().sort_values("qty", ascending=False).head(10)
+    sku_bar = alt.Chart(top_sku).mark_bar().encode(
+        x=alt.X("qty:Q", title="Units"),
+        y=alt.Y("sku:N", sort="-x", title="SKU"),
+        tooltip=["sku","qty"]
+    ).properties(height=280, title="Top SKUs (purchased units)")
+    st.altair_chart(sku_bar, use_container_width=True)
+
+st.divider()
+st.subheader("Filtered rows")
+st.dataframe(fdf.head(1000), use_container_width=True, height=360)
+st.download_button(
+    "Download filtered CSV",
+    data=fdf.to_csv(index=False).encode("utf-8"),
+    file_name="filtered_events.csv",
+    mime="text/csv",
+)
+st.caption("Data can be provided as a single CSV at data/visitor_events_100k.csv or as parts in data/parts/visitor_events_100k_part*.csv")
