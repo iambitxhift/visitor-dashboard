@@ -1,22 +1,41 @@
-# Inject custom CSS properly
-st.markdown(
-    """
-    <style>
-    :root {
-        --bg: #0b1020;
-        --fg: #e8ebff;
-        --card: #151b31;
-        --accent: #5ad7ff;
-    }
-    body {
-        background: radial-gradient(1200px 800px at 10% 10%, #0f1834, #0b1020);
-        color: var(--fg);
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    }
-    .stMetric {
-        text-align: center;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<style>
+/* Main container */
+.block-container { max-width: 1400px; padding-top: 1rem; }
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+}
+[data-testid="stSidebar"] * { color: #111827 !important; }
+
+/* Headings */
+h1, h2, h3 { color: #111827; letter-spacing: .2px; }
+
+/* Metric cards */
+div[data-testid="stMetric"] {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+  color: #6b7280;
+  font-weight: 600;
+}
+div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+  font-size: 2rem;
+  color: #111827;
+}
+
+/* Inputs */
+.stSelectbox, .stMultiSelect, .stTextInput, .stDateInput, .stTextInput input {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+}
+</style>
+""", unsafe_allow_html=True)
