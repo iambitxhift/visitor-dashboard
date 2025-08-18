@@ -5,7 +5,58 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 
-st.set_page_config(page_title="E-commerce Visitor Dashboard", page_icon="📊", layout="wide")
+# st.set_page_config(page_title="E-commerce Visitor Dashboard", page_icon="📊", layout="wide")
+
+import streamlit as st
+
+st.set_page_config(page_title="Visitor Dashboard", layout="wide", initial_sidebar_state="expanded")
+
+# ---- CSS (no raw text on page) ----
+st.markdown("""
+<style>
+/* Tighten main container and spacing */
+.block-container { max-width: 1400px; padding-top: 1rem; }
+
+/* Sidebar look */
+[data-testid="stSidebar"] {
+  background: #101732;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+[data-testid="stSidebar"] * { color: #e8ebff !important; }
+
+/* Headings */
+h1, h2, h3 { color: #e8ebff; letter-spacing: .2px; }
+
+/* Metric cards */
+div[data-testid="stMetric"] {
+  background: #151b31;
+  border: 1px solid rgba(90,215,255,.18);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.04);
+}
+div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+  color: rgba(232,235,255,.75);
+  font-weight: 600;
+}
+div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+  font-size: 2.1rem;
+}
+
+/* Inputs */
+.stSelectbox, .stMultiSelect, .stTextInput, .stDateInput, .stTextInput input {
+  background: #151b31 !important;
+  color: #e8ebff !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(90,215,255,.18) !important;
+}
+
+/* Charts spacing */
+.element-container { margin-bottom: 1rem; }
+hr { border-color: rgba(255,255,255,.08); }
+</style>
+""", unsafe_allow_html=True)
+
 
 def inject_css(path="style.css"):
     if Path(path).exists():
