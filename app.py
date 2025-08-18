@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 import pandas as pd
@@ -9,7 +8,7 @@ import altair as alt
 
 import streamlit as st
 
-st.set_page_config(page_title="Visitor Dashboard", layout="wide", initial_sidebar_state="expanded")
+# st.set_page_config(page_title="Visitor Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # ---- CSS (no raw text on page) ----
 st.markdown("""
