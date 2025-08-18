@@ -4,6 +4,124 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 
+import streamlit as st
+from datetime import datetime
+
+st.set_page_config(page_title="Visitor Dashboard", layout="wide", initial_sidebar_state="expanded")
+
+# ---------- Theme system (light & dark) ----------
+THEMES = {
+    "light": {
+        "bg": "#f8fafc", "fg": "#111827", "card": "#ffffff",
+        "muted": "#6b7280", "border": "#e5e7eb", "accent": "#2563eb",
+        "shadow": "0 2px 6px rgba(0,0,0,.08)"
+    },
+    "dark": {
+        "bg": "#0b1020", "fg": "#e8ebff", "card": "#151b31",
+        "muted": "rgba(232,235,255,.75)", "border": "rgba(90,215,255,.18)", "accent": "#5ad7ff",
+        "shadow": "0 8px 20px rgba(0,0,0,.35)"
+    }
+}
+
+if "theme" not in st.session_state:
+    st.session_state.theme = "light"
+
+with st.sidebar:
+    st.header("Filters")
+    st.session_state.theme = "dark" if st.toggle("🌗 Dark mode", value=(st.session_state.theme=="dark")) else "light"
+
+T = THEMES[st.session_state.theme]
+
+# ---------- Inject CSS using theme variables ----------
+st.markdown(f"""
+<style>
+:root {{
+  --bg: {T['bg']};
+  --fg: {T['fg']};
+  --card: {T['card']};
+  --muted: {T['muted']};
+  --border: {T['border']};
+  --accent: {T['accent']};
+  --shadow: {T['shadow']};
+}}
+
+html, body, [data-testid="stAppViewContainer"] {{
+  background: var(--bg);
+  color: var(--fg);
+}}
+.block-container {{ max-width: 1400px; padding-top: .5rem; }}
+
+/* Sidebar */
+[data-testid="stSidebar"] {{ background: var(--card); border-right: 1px solid var(--border); }}
+[data-testid="stSidebar"] * {{ color: var(--fg) !important; }}
+
+/* Header bar */
+.app-header {{
+  display:flex; align-items:center; justify-content:space-between;
+  background: linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.0)), var(--bg);
+  padding: 12px 8px 6px 4px; margin-bottom: 6px;
+}}
+.app-header .left {{ display:flex; gap:12px; align-items:center; }}
+.app-header .logo {{ font-size: 28px; line-height: 1; }}
+.app-header h1 {{ margin:0; font-size: 34px; color: var(--fg); letter-spacing:.2px; }}
+.app-header p {{ margin:0; color: var(--muted); }}
+
+.badge {{
+  border:1px solid var(--border);
+  background: var(--card);
+  color: var(--fg);
+  padding:6px 10px; border-radius: 999px; font-size:.9rem;
+  box-shadow: var(--shadow);
+}}
+
+.sep {{ border:none; border-top:1px solid var(--border); margin:10px 0 18px; }}
+
+/* Metric cards */
+div[data-testid="stMetric"] {{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}}
+div[data-testid="stMetric"] [data-testid="stMetricLabel"] {{ color: var(--muted); font-weight:600; }}
+div[data-testid="stMetric"] [data-testid="stMetricValue"] {{ font-size: 2rem; color: var(--fg); }}
+
+/* Inputs */
+.stSelectbox, .stMultiSelect, .stTextInput, .stDateInput, .stTextInput input {{
+  background: var(--card) !important; color: var(--fg) !important;
+  border-radius: 10px !important; border: 1px solid var(--border) !important;
+}}
+.stSlider > div > div > div > div {{ background: var(--accent) !important; }}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- Header component ----------
+def render_header(title: str, subtitle: str, date_range_text: str = ""):
+    st.markdown(
+        f"""
+        <div class="app-header">
+            <div class="left">
+                <span class="logo">📊</span>
+                <div>
+                    <h1>{title}</h1>
+                    <p>{subtitle}</p>
+                </div>
+            </div>
+            <div class="right">
+                <span class="badge">{date_range_text}</span>
+            </div>
+        </div>
+        <hr class="sep"/>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Example call (pass your actual selected date range later)
+# render_header("Visitor Analytics Dashboard", "Events, users, conversions & revenue", "2024-01-01 — 2024-05-24")
+
+
+
 # st.set_page_config(page_title="E-commerce Visitor Dashboard", page_icon="📊", layout="wide")
 
 import streamlit as st
