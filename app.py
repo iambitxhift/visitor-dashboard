@@ -78,7 +78,6 @@ inject_css()
 #     df["weekday"] = df["event_time"].dt.day_name()
 #     return df
 
-
 @st.cache_data(show_spinner=True)
 def load_data(path: str, version: str = "") -> pd.DataFrame:
     import pandas as pd
@@ -105,7 +104,6 @@ def load_data(path: str, version: str = "") -> pd.DataFrame:
             st.stop()
         df = pd.concat([_read(p) for p in parts], ignore_index=True)
     return df
-
 
 DATA_PATH_DEFAULT = "data/visitor_events_100k.csv"
 
